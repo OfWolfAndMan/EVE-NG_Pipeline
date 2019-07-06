@@ -101,21 +101,28 @@ class EveServer(RestServer):
 
     def delete_lab(self, labname):
         api_call = REST_SCHEMA['delete_lab']
-        api_url = api_call.format(api_call, lab_name=append_unl(labname))
+        api_url = api_call.format(api_call, lab_name=append_eve(labname))
         resp = self.del_object(api_url)
         return resp
 
 class EveLab(object):
 
-    def __init__(self, unl, name):
+    def __init__(self, eve, name):
+        api_call = REST_SCHEMA['create_lab']
+        payload = {
+           "path": "/",
+           "name": name,
+           "version": "1"
+        }
         self.name = name
-        self.unl = unl
+        self.eve = eve
+        self.resp = self.eve.add_object(api_call, data=payload)
 
     def create_node(self, device):
         api_call = REST_SCHEMA['create_node']
-        api_url = api_call.format(api_call, lab_name=append_unl(self.name))
+        api_url = api_call.format(api_call, lab_name=append_eve(self.name))
         payload = device.to_json()
-        self.unl.add_object(api_url, data=payload)
+        self.eve.add_object(api_url, data=payload)
         return EveNode(self, device)
 
     def get_node(self, device):
@@ -123,8 +130,8 @@ class EveLab(object):
 
     def get_nodes(self):
         api_call = REST_SCHEMA['get_all_nodes']
-        api_url = api_call.format(api_call, lab_name=append_unl(self.name))
-        resp = self.unl.get_object(api_url)
+        api_url = api_call.format(api_call, lab_name=append_eve(self.name))
+        resp = self.eve.get_object(api_url)
         return resp
 
     def get_net(self, name, net_type='bridge'):
@@ -132,33 +139,33 @@ class EveLab(object):
 
     def create_net(self, name, net_type='bridge'):
         api_call = REST_SCHEMA['create_net']
-        api_url = api_call.format(api_call, lab_name=append_unl(self.name))
+        api_url = api_call.format(api_call, lab_name=append_eve(self.name))
         payload = {'type': net_type, 'name': name}
-        self.unl.add_object(api_url, data=payload)
+        self.eve.add_object(api_url, data=payload)
         return EveNet(self, name, net_type)
 
     def get_nets(self):
         api_call = REST_SCHEMA['get_nets']
-        api_url = api_call.format(api_call, lab_name=append_unl(self.name))
-        resp = self.unl.get_object(api_url)
+        api_url = api_call.format(api_call, lab_name=append_eve(self.name))
+        resp = self.eve.get_object(api_url)
         return resp
 
     def start_all_nodes(self):
         api_call = REST_SCHEMA['start_all_nodes']
-        api_url = api_call.format(api_call, lab_name=append_unl(self.name))
-        resp = self.unl.get_object(api_url)
+        api_url = api_call.format(api_call, lab_name=append_eve(self.name))
+        resp = self.eve.get_object(api_url)
         return resp
 
     def stop_all_nodes(self):
         api_call = REST_SCHEMA['stop_all_nodes']
-        api_url = api_call.format(api_call, lab_name=append_unl(self.name))
-        resp = self.unl.get_object(api_url)
+        api_url = api_call.format(api_call, lab_name=append_eve(self.name))
+        resp = self.eve.get_object(api_url)
         return resp
 
     def delete_node(self, node_id):
         api_call = REST_SCHEMA['delete_node']
-        api_url = api_call.format(api_call, lab_name=append_unl(self.name), node_id=node_id)
-        resp = self.unl.del_object(api_url)
+        api_url = api_call.format(api_call, lab_name=append_eve(self.name), node_id=node_id)
+        resp = self.eve.del_object(api_url)
         return resp
 
     def del_all_nodes(self):
@@ -176,7 +183,7 @@ class EveLab(object):
 class EveNode(object):
 
     def __init__(self, lab, device):
-        self.unl = lab.unl
+        self.eve = lab.eve
         self.lab = lab
         self.device = device
         self.node = self._get_node()
@@ -191,10 +198,10 @@ class EveNode(object):
 
     def connect_interface(self, intf_name, net):
         api_call = REST_SCHEMA['connect_interface']
-        api_url = api_call.format(api_call, lab_name=append_unl(self.lab.name), node_id=self.id)
+        api_url = api_call.format(api_call, lab_name=append_eve(self.lab.name), node_id=self.id)
         self.intf_to_net[intf_name] = net.name
         payload = {self.device.get_intf_id(intf_name): net.id}
-        resp = self.unl.update_object(api_url, data=payload)
+        resp = self.eve.update_object(api_url, data=payload)
         return resp
 
     def connect_node(self, local_intf, other_node, other_intf):
@@ -220,7 +227,7 @@ class EveNode(object):
 class EveNet(object):
 
     def __init__(self, lab, name, net_type):
-        self.unl, self.lab, self.name = lab.unl, lab, name
+        self.eve, self.lab, self.name = lab.eve, lab, name
         self.net = self._get_net()
         self.id = self.net['id']
 
